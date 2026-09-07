@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+.venv/
+tools/.fontcache/
+layout-check/
+dist/
+.herenow/
+.env
+.env.*

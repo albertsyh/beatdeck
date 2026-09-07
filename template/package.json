@@ -1,0 +1,23 @@
+{
+  "name": "__DECK_NAME__",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A beatdeck presentation: src/deck.jsx compiles to one self-contained HTML file.",
+  "scripts": {
+    "build": "bun run build.mjs",
+    "fonts": "bun run tools/fetch-fonts.mjs",
+    "fonts:subset": "bun run tools/subset-fonts.mjs",
+    "check:layout": "bun run tools/check-layout.mjs",
+    "dist": "bun run tools/make-dist.mjs",
+    "publish": "bun run tools/publish.mjs"
+  },
+  "dependencies": {
+    "motion": "^12",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

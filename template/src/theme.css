@@ -1,0 +1,75 @@
+/* ============================================================
+   THEME — the only file you edit to change how the deck looks.
+
+   Two palettes (light and dark), a type scale, weights, spacing
+   and a corner radius. src/framework/base.css maps --light-* /
+   --dark-* onto the live tokens (--bg, --fg, --accent …) from
+   <html data-theme>, which the theme switch and deck.config.js
+   control. Fonts are declared in deck.config.js (so the fetch
+   tool and this file cannot disagree) and arrive here as
+   --font-display / --font-text / --font-mono.
+
+   Contrast notes are against each palette's --bg. Keep body type
+   at 4.5:1 or better and accent-on-bg at 3:1 for non-text.
+   ============================================================ */
+:root{
+  /* --- LIGHT ---------------------------------------------------- */
+  --light-bg:          #FBFAF7;   /* warm paper                         */
+  --light-bg-raised:   #F0EDE6;   /* cards, panels                      */
+  --light-line:        #D9D4C9;   /* hairlines                          */
+  --light-fg:          #15181D;   /* primary type            16.5:1     */
+  --light-fg-dim:      #3E444D;   /* secondary type          9.6:1      */
+  --light-fg-muted:    #6B727C;   /* captions                5.0:1      */
+  --light-accent:      #146C66;   /* the one signal          5.9:1      */
+  --light-accent-dim:  #9CC9C4;   /* accent hairlines, non-text         */
+  --light-accent-wash: #E2F0EE;   /* accent at panel strength           */
+  --light-letterbox:   #E7E3DA;   /* around the scaled stage            */
+  --light-fig-ground:  #FFFFFF;   /* figure ramp: inside a window       */
+  --light-fig-panel:   #EDE9E0;   /*              a cell, a panel       */
+  --light-fig-line:    #B9B3A6;   /*              edges                 */
+  --light-fig-block:   #9A948A;   /*              blocks for text       */
+
+  /* --- DARK ----------------------------------------------------- */
+  --dark-bg:           #12151A;
+  --dark-bg-raised:    #1C2128;
+  --dark-line:         #2F363F;
+  --dark-fg:           #F2F0EA;   /* 16.0:1 */
+  --dark-fg-dim:       #C3C7CE;   /* 10.2:1 */
+  --dark-fg-muted:     #8B929C;   /*  5.6:1 */
+  --dark-accent:       #5FD3C7;   /*  9.4:1 */
+  --dark-accent-dim:   #2A6660;
+  --dark-accent-wash:  rgba(95,211,199,.10);
+  --dark-letterbox:    #0A0C0F;
+  --dark-fig-ground:   #1C2128;
+  --dark-fig-panel:    #2D343D;
+  --dark-fig-line:     #4E5765;
+  --dark-fig-block:    #6E7887;
+
+  /* --- TYPE SCALE (px on the 1920x1080 canvas) ------------------- */
+  --t-display: 104px;
+  --t-title:   60px;
+  --t-subhead: 34px;
+  --t-body:    26px;
+  --t-caption: 19px;
+  --t-giant:   320px;
+
+  /* line metrics — Latin defaults; base.css retunes them per language */
+  --lh-display: 1.02;
+  --lh-title:   1.1;
+  --lh-subhead: 1.35;
+  --lh-body:    1.55;
+  --lh-item:    1.35;
+  --ls-display: -.03em;
+  --ls-title:   -.02em;
+
+  /* weights — read / emphasise / announce */
+  --w-read: 400;
+  --w-emph: 500;
+  --w-ann:  700;
+
+  /* spacing rhythm, multiples of 8 */
+  --s1: 8px;  --s2: 16px; --s3: 24px; --s4: 32px;
+  --s5: 48px; --s6: 64px; --s7: 96px; --s8: 128px;
+
+  --radius: 20px;
+}
