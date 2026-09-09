@@ -1,20 +1,22 @@
 ---
 name: beatdeck
 description: >
-  Build presentation decks as React + Motion apps that compile to ONE self-contained
-  HTML file (opens by double-click, no server, no network) with beat-by-beat reveals,
-  shared-element morphs, a contents menu, keyboard shortcuts, runtime language and
-  light/dark switching, a phone-friendly portrait reflow, pixel-identical PDF export
-  per language x theme, user-defined fonts and theme tokens, and one-command
-  publishing to here.now. Use when asked to "make a slide deck", "build a
-  presentation", "create slides", "turn this into a talk", "HTML slides", "multilingual
-  deck", "publish my deck", or to edit/extend an existing beatdeck project (one that
-  has deck.config.js and src/framework/primitives.jsx).
+  Use when asked to "make a slide deck", "build a presentation", "create slides",
+  "turn this into a talk", "HTML slides", "multilingual deck", "publish my deck", or
+  to edit/extend an existing beatdeck project (one with deck.config.js and
+  src/framework/primitives.jsx). Builds decks as React + Motion apps that compile to
+  ONE self-contained HTML file (opens by double-click, no server, no network) with
+  beat-by-beat reveals, shared-element morphs, a contents menu, keyboard shortcuts,
+  runtime language and light/dark switching, a phone-friendly portrait reflow,
+  pixel-identical PDF export per language x theme, user-defined fonts and theme
+  tokens, and one-command publishing to here.now.
 ---
 
 # beatdeck
 
-**Skill version: 0.1.0** · install or refresh: `npx skills add albertsyh/beatdeck`
+*Presentations, beat by beat.*
+
+**Skill version: 0.2.0** · install or refresh: `npx skills add albertsyh/beatdeck`
 
 A deck is a small React app: slide components + a manifest of `{ id, label, steps, view }`.
 `bun run build` compiles it to `<name>.html`, one file with React, Motion, fonts and
@@ -31,8 +33,10 @@ bun <this-skill>/scripts/init.mjs ../my-talk --name my-talk --title "My talk"
 cd ../my-talk && bun run build        # → my-talk.html; open it
 ```
 
-`init.mjs` copies `template/`, stamps the name, installs deps, and copies this skill
-into `<project>/.claude/skills/beatdeck` so any agent opening the folder has it.
+`init.mjs` copies `template/`, stamps the name, installs deps, writes `AGENTS.md`
+(plus a `CLAUDE.md` that imports it), and copies this file and `reference/` into
+`<project>/docs/beatdeck`, so an agent opening
+the folder later has the conventions even where beatdeck is not installed.
 Requires [bun](https://bun.sh). Chrome is needed only for `check:layout`/handouts.
 
 ## 1. The workflow

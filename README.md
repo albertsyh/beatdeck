@@ -1,34 +1,43 @@
 # beatdeck
 
+*Presentations, beat by beat.*
+
 An agent skill for building presentation decks that compile to **one self-contained
 HTML file**: double-click it, no server, no network. Beat-by-beat reveals, shared-element
 morphs, a contents menu, keyboard shortcuts, runtime language and light/dark switching,
 a portrait reflow for phones, pixel-identical PDF handouts per language × theme,
 your own fonts and theme tokens, and `bun run publish` to here.now.
 
-Works with Claude Code and Claude Cowork (standard `SKILL.md` format).
+Works with any harness that reads the standard `SKILL.md` format — Claude Code and
+Cowork, Codex, Cursor, and the ~40 agents the `skills` CLI knows about.
 
 ## Install
 
 ```bash
-npx skills add albertsyh/beatdeck -g     # globally, for every project
-npx skills add albertsyh/beatdeck        # or into the current project
+npx skills add albertsyh/beatdeck -g              # globally, for every project
+npx skills add albertsyh/beatdeck                 # or into the current project
+npx skills add albertsyh/beatdeck -a codex -g     # a specific harness
 ```
 
-Or copy the folder into `~/.claude/skills/beatdeck` by hand. `init.mjs` also
-installs the skill into every project it scaffolds.
+The CLI picks the right directory per harness (`~/.claude/skills` for Claude Code,
+`~/.codex/skills` for Codex, and so on) — it prompts for which agents to install to,
+or takes `-a`.
+
+Or copy the folder into your harness's skills directory by hand. Every scaffolded
+project also gets `AGENTS.md` (imported by `CLAUDE.md`) and a copy of the conventions
+in `docs/beatdeck/`, so an agent opening it later is not lost without the skill.
 
 ## Use
 
 ```bash
-bun ~/.claude/skills/beatdeck/scripts/init.mjs ../my-talk --title "My talk"
+bun <skill-dir>/scripts/init.mjs ../my-talk --title "My talk"
 cd ../my-talk
 bun run build            # → my-talk.html
 bun run check:layout     # PDFs + overflow check (needs Chrome)
 bun run publish          # → here.now
 ```
 
-Then ask Claude: *"add a slide after the cover with three points that land one at a
+Then ask your agent: *"add a slide after the cover with three points that land one at a
 time"* — the skill knows the conventions.
 
 ## Layout
