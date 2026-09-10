@@ -14,8 +14,21 @@ Drives that print sheet headlessly (system Chrome via playwright-core; set
 
 - measures every element against its slide and **fails on overflow** — the canvas is
   fixed, so a long translation spills silently otherwise;
-- reports `TIGHT` when copy passes the padding edge where the on-screen chrome sits;
+- **fails on a chrome collision**: `slide 7  ON the chrome (left cluster) by 14px`.
+  The bar is not in the print tree, so the run first walks the live deck slide by
+  slide and records where the two clusters actually sit (the left one grows with the
+  label and the beat dots, so it is measured per slide per language), then tests the
+  printed copy against those boxes in canvas coordinates;
+- reports `TIGHT` when copy stops within 12px of a cluster without touching it;
 - writes `layout-check/<name>-<lang>-<theme>.pdf`.
+
+Only **leaf text** is tested against the bar: a full-bleed `.ground` or a hero image
+under the chrome is a design, not a bug. Copy that is meant to sit under the bar opts
+out with `class="over-chrome"`. Screen and print are matched slide by slide on what
+each one says, because a view that returns `null` under `useStatic()` prints no page;
+a page that cannot be matched prints a `note:` line and keeps its chrome unchecked
+rather than borrowing another slide's bar. Flow (phone) mode is never rendered here —
+probe it as `reference/checks.md` describes.
 
 When `theme.print` pins a palette there is one PDF per language; otherwise one per
 language × theme. The closing slide's download button names the same file

@@ -99,6 +99,39 @@ export const SLIDES = withFlat(MANIFEST, useFlow);
   language for free.
 - `withFlat` wraps multi-beat views so they render whole in flow mode.
 
+## The chrome band
+
+The bar at the foot of every slide — menu button, label, beat dots, controls, counter,
+arrows — is **not part of the slide**. It is one `.chrome` inside `.stage`, drawn over
+whichever slide is showing, `left/right: var(--margin)`, `bottom: 40px`, 44px tall. The
+canvas is 1080 tall, so it occupies roughly **y 990–1040**, and it is *wider on some
+slides than others*: the left cluster grows with the slide's label (per language) and
+with one dot per `step`.
+
+A slide's own bottom padding is `var(--margin)` (96px), which stops flowed content at
+y 984 — six pixels clear. So **normally flowed copy can never reach the bar**, and copy
+that does is always copy that left the flow:
+
+```jsx
+/* wrong — the source line lands on the label and the dots */
+<p className="src" style={{ position: "absolute", left: 96, bottom: 52 }}>Source: …</p>
+
+/* right — a footnote is the last thing in the flow */
+<div className="spacer" />
+<p className="src">Source: …</p>
+```
+
+- Put a source line, a footnote or a credit **in the flow**, at the end of the slide,
+  after a `.spacer`. It then sits above the padding edge by construction.
+- Absolute positioning inside a slide is for figures, not for copy. If you must, keep
+  it above `y 940` or outside the label's reach — and remember the label is longer in
+  some languages than in the one you are looking at.
+- Anything that deliberately runs under the bar (a full-bleed `.ground`, a hero image)
+  is fine and is not flagged. Deliberate *copy* under the bar gets `.over-chrome`,
+  which is the opt-out `check:layout` honours.
+- `bun run check:layout` measures the real bar on the live deck and fails on a hit;
+  see `reference/publishing.md`.
+
 ## The print tree
 
 `PrintSheet` renders every slide at `steps - 1` under `StaticCtx.Provider value={true}`.

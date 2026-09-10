@@ -26,6 +26,13 @@ export default {
      `mono` name which family plays which role; they arrive in CSS as
      --font-display / --font-text / --font-mono.
 
+     A role takes one family name, a LIST of names (a system stack, e.g.
+     ["Iowan Old Style", "Palatino", "Georgia"] — CSS keywords such as
+     system-ui are emitted unquoted), or null for the built-in fallback.
+     `families: []` embeds nothing: smaller file, no network, but the deck
+     sets differently on every machine and the glyph-coverage check cannot
+     run. Options and the trade-off: docs/beatdeck/reference/looks.md.
+
      `scripts` lists non-Latin faces to subset to exactly the characters the
      copy uses (`bun run fonts:subset`, needs a .venv with fonttools).
      Presets: "sc" (Simplified Chinese), "tc" (Traditional), "jp", "kr",

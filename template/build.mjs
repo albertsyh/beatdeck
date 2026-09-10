@@ -44,7 +44,17 @@ if ((config.fonts?.scripts || []).length) {
    then every subsetted script face (their unicode-ranges are disjoint), then
    a system fallback */
 const scriptFamilies = (config.fonts?.scripts || []).map((s) => typeof s === "string" ? SCRIPT_FACES[s]?.family : s.family).filter(Boolean);
-const stack = (primary, tail) => [primary, ...scriptFamilies].filter(Boolean).map((f) => `"${f}"`).concat(tail).join(", ");
+/* A role names one family ("Syne"), a LIST of families (a system stack,
+   which is a stack by nature — ["Iowan Old Style", "Georgia"]), or null for
+   the built-in fallback. CSS keywords must not be quoted: "system-ui" in
+   quotes is a family name nobody has, and the stack silently skips it. */
+const BARE = new Set(["system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded",
+                      "sans-serif", "serif", "monospace", "cursive", "fantasy",
+                      "-apple-system", "BlinkMacSystemFont"]);
+const stack = (primary, tail) =>
+  [...new Set([...(Array.isArray(primary) ? primary : [primary]), ...scriptFamilies]
+    .filter(Boolean).map((f) => BARE.has(f) ? f : `"${f}"`)
+    .concat(tail.map((f) => BARE.has(f) ? f : `"${f}"`)))].join(", ");
 const fontTokens = `:root{
   --font-display: ${stack(config.fonts?.display, ["Georgia", "serif"])};
   --font-text: ${stack(config.fonts?.text, ["system-ui", "-apple-system", "Segoe UI", "Helvetica", "Arial", "sans-serif"])};
@@ -64,7 +74,17 @@ function coveredBy(css) {
   }
   return set;
 }
-{
+/* Both text roles on system stacks = the glyphs come from the viewer's OS,
+   which this build cannot enumerate. A role is embedded only if it names a
+   family that fonts.families actually fetched; `mono` does not count either
+   way, because it sets no copy. */
+const embeddedNames = new Set((config.fonts?.families || []).map((f) => f.family));
+const embeds = (role) => (Array.isArray(role) ? role : [role]).filter(Boolean).some((f) => embeddedNames.has(f));
+const systemType = !embeds(config.fonts?.display) && !embeds(config.fonts?.text);
+if (systemType) {
+  console.warn("warning: display and text are system stacks — glyph coverage is the viewer's OS, not the deck, and the deck will set differently on each one.");
+}
+if (!systemType) {
   const strings = await import(resolve("src/strings/index.js"));
   const covered = coveredBy(fonts + "\n" + deckFonts);
   const missing = new Map();

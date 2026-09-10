@@ -16,7 +16,7 @@ description: >
 
 *Presentations, beat by beat.*
 
-**Skill version: 0.2.0** · install or refresh: `npx skills add albertsyh/beatdeck`
+**Skill version: 0.3.0** · install or refresh: `npx skills add albertsyh/beatdeck`
 
 A deck is a small React app: slide components + a manifest of `{ id, label, steps, view }`.
 `bun run build` compiles it to `<name>.html`, one file with React, Motion, fonts and
@@ -41,22 +41,34 @@ Requires [bun](https://bun.sh). Chrome is needed only for `check:layout`/handout
 
 ## 1. The workflow
 
-1. **Copy first.** Write `src/strings/en.js`: `meta`, `ui`, `labels` (one per slide id),
+1. **Settle the look — do not default into it.** Palette and typefaces are the user's
+   call, and the template's defaults are a choice nobody made.
+   - Told which (a brand, a hex, a face): use it, say what you used.
+   - Told nothing: **ask, before writing code** — one `AskUserQuestion` with both
+     questions, offering the named palettes and pairings in `reference/looks.md`
+     (Paper / Slate / Signal / Oxblood; Syne+DM Sans / Fraunces+Inter / Space
+     Grotesk+IBM Plex / a system stack that embeds nothing). Name the default.
+   - **Asked to follow an existing deck, PDF or site: extract, then CONFIRM before
+     building.** You are inventing most of it — a PDF has one ground, the deck needs
+     two plus the whole `fig-*` ramp — and a licensed corporate face can only be
+     matched by a near substitute, which the user should get to reject. Put the
+     colours, the accent and the proposed faces back to them in one message.
+2. **Copy first.** Write `src/strings/en.js`: `meta`, `ui`, `labels` (one per slide id),
    then one key per slide. Arrays are beats: three `items` = a three-beat slide.
-2. **Structure.** In `src/deck.jsx` write one component per slide and list it in
+3. **Structure.** In `src/deck.jsx` write one component per slide and list it in
    `MANIFEST` with `steps` equal to the highest `step >= n` used, plus one. Add an
    assertion that array lengths match `steps` (the template shows how).
-3. **Look.** Tokens in `src/theme.css` (two palettes, type scale, spacing, radius);
-   typefaces in `deck.config.js` → `bun run fonts` (network, once, commit the result).
-   Deck-only CSS goes in `src/deck.css` (auto-appended if present). Never viewport
-   units, never per-slide magic sizes.
-4. **Build.** `bun run build`. The build refuses: duplicate/missing ids, a code-split
+4. **Look.** Apply what step 1 settled: tokens in `src/theme.css` (two palettes, type
+   scale, spacing, radius); typefaces in `deck.config.js` → `bun run fonts` (network,
+   once, commit the result). Deck-only CSS goes in `src/deck.css` (auto-appended if
+   present). Never viewport units, never per-slide magic sizes.
+5. **Build.** `bun run build`. The build refuses: duplicate/missing ids, a code-split
    bundle, an image > 1 MB or > 4 MB total, HEVC video, a character no embedded font
    covers, a language whose shape differs from the default.
-5. **Check.** `bun run check:layout` writes `layout-check/<name>-<lang>-<theme>.pdf`
-   and fails on overflow. Look at the PDF; passing means nothing spilled, not that
-   the right thing is on the page.
-6. **Publish.** `bun run publish` = build → handouts → `dist/` → here.now. Then pin the
+6. **Check.** `bun run check:layout` writes `layout-check/<name>-<lang>-<theme>.pdf`
+   and fails on overflow, and on copy that lands on the chrome. Look at the PDF;
+   passing means nothing spilled, not that the right thing is on the page.
+7. **Publish.** `bun run publish` = build → handouts → `dist/` → here.now. Then pin the
    printed slug in `deck.config.js publish.slug` so later publishes update the same URL.
 
 Hand the user the commands to run; a build on your side is the verify step.
@@ -105,6 +117,14 @@ function Why({ step }) {
   to follow (a PDF, an email) are the only allowed URLs.
 - **In-slide controls stop the click** (`e.stopPropagation()`), or a press also
   advances a beat. Native `a`/`button` and `.no-advance` are already ignored.
+- **The look is asked for, never assumed.** No palette or typeface in the request means
+  one `AskUserQuestion` before code; a deck to follow means confirming what you read out
+  of it before code. `reference/looks.md` carries the options and the contrast floors.
+- **The chrome is not part of the slide.** The bar (label, dots, controls, counter,
+  arrows) is drawn over every slide across roughly `y 990–1040`, and the left cluster
+  gets wider with a longer label or more beats. A source line or footnote goes at the
+  END OF THE FLOW after a `.spacer`, never absolutely positioned into the bottom
+  padding; `check:layout` fails on a hit, and `.over-chrome` is the opt-out.
 - **A control that shows something also hides it**, from the target's live state.
 - **A control whose label changes keeps one width** (stack labels in one grid cell,
   `visibility: hidden` the rest — never `min-width`).
@@ -124,6 +144,8 @@ function Why({ step }) {
 ## 5. References (read when the task touches them)
 
 - `reference/authoring.md` — slides, beats, effects, morphs, dock, manifest, print tree
+- `reference/looks.md` — **choosing** the palette and typefaces: the ask/confirm
+  protocol, four palettes with measured contrast, four pairings incl. a system stack
 - `reference/theming.md` — tokens, palettes, fonts, deck.css, contrast
 - `reference/i18n.md` — adding a language, strings shape, fonts:subset, per-language metrics
 - `reference/publishing.md` — check:layout, dist, here.now, slugs and handouts

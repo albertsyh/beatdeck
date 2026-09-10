@@ -3,6 +3,10 @@
 The look is two files: `src/theme.css` (tokens) and `deck.config.js` (typefaces).
 `src/framework/base.css` reads only tokens, so a re-skin never touches it.
 
+**Which** palette and typefaces to use is decided with the user, not here — the
+options, the ask/confirm protocol and the contrast floors are in
+`reference/looks.md`. This file is how the machinery works once they are chosen.
+
 ## Tokens (`src/theme.css`)
 
 Two palettes, each a full set of `--light-*` / `--dark-*`:
@@ -41,6 +45,14 @@ fonts: {
   scripts: []       // "sc" "tc" "jp" "kr" "thai" "arabic" "devanagari" — see i18n.md
 }
 ```
+
+`display`, `text` and `mono` each take one family name, a **list** of family names (a
+system stack — `["Iowan Old Style", "Palatino", "Georgia"]`; CSS keywords such as
+`system-ui` are emitted unquoted), or `null` for the built-in fallback. With
+`families: []` nothing is embedded: `bun run fonts` writes an empty `src/fonts.css`,
+the deck is ~330 KB smaller, and the build warns and skips the glyph-coverage check
+because the faces now come from the viewer's OS — which also means the deck sets
+differently on every machine. See `reference/looks.md`.
 
 `bun run fonts` fetches the Latin subset of each Google family and embeds it in
 `src/fonts.css` as base64 (needs network once; commit the result). The build injects

@@ -51,6 +51,15 @@ playwright at 320 / 360 / 390 / 430 × every language:
 
 Set language via `?lang=` per load so each combination starts clean.
 
+## Copy that sits near the chrome
+
+`check:layout` fails on a real overlap, so the proof is the four cases, not one:
+move the line onto the left cluster (fails, exit 1), move it to mid-canvas at the
+same height (clean — the bar is two clusters with empty space between them, not a
+band), lift it a few px clear (`TIGHT`, exit 0), and mark the colliding version
+`.over-chrome` (clean). Do it in a scratch deck: `bun <skill>/scripts/init.mjs`,
+edit one slide, `bun run build` between each.
+
 ## A guard
 
 Induce the failure it protects against, **confirm the bad state exists**, then read
