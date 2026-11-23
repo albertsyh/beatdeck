@@ -29,23 +29,31 @@ in `docs/beatdeck/`, so an agent opening it later is not lost without the skill.
 
 ### claude.ai and ChatGPT (upload)
 
-```bash
-bun scripts/package.mjs        # committed files only, validated; writes all of dist/ or nothing
-```
+Download the file for where you are installing it. Each link is the newest
+[release](https://github.com/albertsyh/beatdeck/releases).
 
-| File | Shape | Upload it to |
-|---|---|---|
-| `dist/beatdeck.skill` | `beatdeck/SKILL.md` | claude.ai: **Customize → Skills → + → Create skill → Upload a skill** (code execution on) |
-| `dist/beatdeck.zip` | same bytes | uploaders that only take `.zip` (ChatGPT **Skills → Create → Upload from your computer**) |
-| `dist/beatdeck-plugin.zip` | `beatdeck/.claude-plugin/plugin.json` + `skills/beatdeck/` | ChatGPT's **New Plugin** dialog; also a Claude Code plugin (`claude --plugin-dir`) |
+| Download | Upload it to |
+|---|---|
+| [**beatdeck.skill**](https://github.com/albertsyh/beatdeck/releases/latest/download/beatdeck.skill) | claude.ai: **Customize → Skills → + → Create skill → Upload a skill** (code execution on) |
+| [**beatdeck-plugin.zip**](https://github.com/albertsyh/beatdeck/releases/latest/download/beatdeck-plugin.zip) | ChatGPT: **Plugins → New Plugin**. Also a Claude Code plugin (`claude --plugin-dir`) |
+| [beatdeck.zip](https://github.com/albertsyh/beatdeck/releases/latest/download/beatdeck.zip) | same bytes as the `.skill`, for uploaders that only take `.zip` |
 
 ChatGPT skills and plugins need a Business, Enterprise or Edu workspace; uploads are
-scanned first and may sit in *Needs Review*.
+scanned first and may sit in *Needs Review*. In either sandbox the agent builds the
+deck and hands you the HTML; `check:layout`, handouts and `publish` need Chrome,
+network and a here.now key, so they belong on your machine.
+
+To build the packages yourself:
+
+```bash
+bun scripts/package.mjs             # → dist/, from committed files, validated
+bun scripts/package.mjs --release   # …and publish them as release v<Skill version>
+```
 
 The packager runs skill-creator's official validator (needs the skill-creator
-plugin and [uv](https://docs.astral.sh/uv/)). In a hosted sandbox the agent builds
-the deck and hands you the HTML; `check:layout`, handouts and `publish` need Chrome,
-network and a here.now key, so they belong on your machine.
+plugin and [uv](https://docs.astral.sh/uv/)) and writes all of `dist/` or nothing.
+`--release` needs [gh](https://cli.github.com/) and a clean, pushed HEAD whose
+version has no release yet.
 
 ## Use
 

@@ -6,8 +6,12 @@
  * exactly one SKILL.md). The `.zip` is for ChatGPT and anything else that
  * filters uploads by extension.
  *
- *   bun  scripts/package.mjs [--out dist]
+ *   bun  scripts/package.mjs [--out dist] [--release]
  *   node scripts/package.mjs …
+ *
+ * --release also publishes the three files as GitHub release v<Skill version>
+ * (README links /releases/latest/download/<file>). Before any work it refuses
+ * a dirty tree, an unpushed HEAD, and a tag or release that already exists.
  *
  * - packages the committed tree at HEAD (git archive), never the working copy,
  *   so local scratch never ships; uncommitted changes are listed and left out
@@ -35,6 +39,7 @@ const CLAUDE_AI_DESC_LIMIT = 200;
 const args = process.argv.slice(2);
 const outIdx = args.indexOf("--out");
 const OUT = resolve(ROOT, outIdx >= 0 ? args[outIdx + 1] : "dist");
+const RELEASE = args.includes("--release");
 
 let stage = null; // staging dir; removed on every exit path, including die()
 const cleanup = () => { if (stage) rmSync(stage, { recursive: true, force: true }); };
@@ -46,6 +51,7 @@ if (run("git", ["rev-parse", "--is-inside-work-tree"]).status !== 0) die("not a 
 const head = run("git", ["rev-parse", "--short", "HEAD"]).stdout.trim();
 const dirty = run("git", ["status", "--porcelain"]).stdout.trim();
 if (dirty) {
+  if (RELEASE) die(`--release needs a clean tree (a release must match a commit); commit or stash:\n${dirty}`);
   console.warn(`! uncommitted changes are NOT packaged (packaging ${head}):`);
   for (const line of dirty.split("\n")) console.warn(`    ${line}`);
 }
@@ -62,6 +68,28 @@ const descBlock = fm[1].match(/^description:\s*(.*)\n((?:[ \t]+.*\n?)*)/m);
 const description = descBlock
   ? [descBlock[1].replace(/^[>|][-+]?$/, ""), ...descBlock[2].split("\n")].map((l) => l.trim()).filter(Boolean).join(" ")
   : "";
+const version = skillMd.stdout.match(/Skill version:\s*(\d+\.\d+\.\d+)/)?.[1];
+const TAG = version && `v${version}`;
+const REPO = githubRepo();
+
+// ── 2b. --release preflight: everything that can refuse, before any work ──
+if (RELEASE) {
+  if (!version) die("SKILL.md has no `Skill version: x.y.z` line; the release tag is v<version>");
+  if (!REPO) die("origin is not a GitHub remote; --release publishes a GitHub release");
+  if (spawnSync("gh", ["--version"], { stdio: "ignore" }).status !== 0) die("gh (GitHub CLI) is not on PATH");
+  if (run("git", ["fetch", "--quiet", "origin"]).status !== 0) die("git fetch origin failed");
+  const upstream = run("git", ["rev-parse", "@{u}"]);
+  if (upstream.status !== 0) die("this branch has no upstream; push it first");
+  if (upstream.stdout.trim() !== run("git", ["rev-parse", "HEAD"]).stdout.trim()) {
+    die(`HEAD (${head}) is not what origin has; push first, so the release points at a commit people can see`);
+  }
+  const tag = run("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/${TAG}`]);
+  if (tag.status === 0) die(`tag ${TAG} already exists on origin; bump "Skill version" in SKILL.md for a new release`);
+  if (tag.status !== 2) die(`could not check origin for tag ${TAG}: ${tag.stderr.trim()}`);
+  if (spawnSync("gh", ["release", "view", TAG, "-R", REPO], { stdio: "ignore" }).status === 0) {
+    die(`release ${TAG} already exists on ${REPO}`);
+  }
+}
 
 // ── 3. extract exactly those files and validate them ────────────────────────
 stage = mkdtempSync(join(tmpdir(), "beatdeck-package-"));
@@ -147,6 +175,31 @@ try {
   console.log(`  ${rel(file)}  ${kb(file)}   claude.ai: Customize → Skills → + → Create skill → Upload a skill`);
   console.log(`  ${rel(zipCopy)}  ${kb(zipCopy)}   same bytes, for uploaders that want .zip (ChatGPT Skills → Create → Upload)`);
   console.log(`  ${rel(pluginFile)}  ${kb(pluginFile)}   plugin uploaders: ChatGPT "New Plugin"; Claude Code --plugin-dir`);
+
+  // ── 7. --release: publish the three files as GitHub release v<version> ───
+  // README links /releases/latest/download/<file>, so every release must
+  // carry all three under these exact names.
+  if (RELEASE) {
+    const sha = run("git", ["rev-parse", "HEAD"]).stdout.trim();
+    const dl = (f) => `[${basename(f)}](https://github.com/${REPO}/releases/download/${TAG}/${basename(f)})`;
+    const notes = [
+      `Upload packages for beatdeck ${version}, built from ${sha.slice(0, 7)}.`,
+      "",
+      "| File | Upload it to |",
+      "|---|---|",
+      `| ${dl(file)} | claude.ai: Customize → Skills → + → Create skill → Upload a skill |`,
+      `| ${dl(pluginFile)} | ChatGPT: Plugins → New Plugin (Business, Enterprise, Edu). Also a Claude Code plugin (\`claude --plugin-dir\`) |`,
+      `| ${dl(zipCopy)} | same bytes as the .skill, for uploaders that only take .zip |`,
+      "",
+      `Claude Code, Codex, Cursor and other SKILL.md harnesses: \`npx skills add ${REPO} -g\``,
+    ].join("\n");
+    const r = spawnSync("gh", ["release", "create", TAG, ...[file, zipCopy, pluginFile].map(out),
+      "-R", REPO, "--target", sha, "--title", `beatdeck ${version}`, "--notes", notes], { encoding: "utf8" });
+    if (r.status !== 0) die(`gh release create failed (dist/ is built; fix and re-run --release):\n${(r.stderr || r.stdout).trim()}`);
+    run("git", ["fetch", "--quiet", "--tags", "origin"]);
+    console.log(`✓ released ${TAG}: ${r.stdout.trim()}`);
+    console.log(`  always-newest links: https://github.com/${REPO}/releases/latest/download/<file>`);
+  }
 } finally {
   cleanup();
 }
@@ -187,9 +240,7 @@ function pluginManifest(skillDir, name) {
   if (!holder) die("could not read the author from LICENSE's copyright line (plugin manifests require author.name)");
   const licenseId = /^MIT License/m.test(lic) ? "MIT" : undefined;
 
-  const remote = run("git", ["remote", "get-url", "origin"]).stdout.trim();
-  const gh = remote.match(/github\.com[:/](.+?)(?:\.git)?$/)?.[1];
-  const homepage = gh ? `https://github.com/${gh}` : undefined;
+  const homepage = REPO ? `https://github.com/${REPO}` : undefined;
 
   return {
     name,
@@ -200,6 +251,12 @@ function pluginManifest(skillDir, name) {
     ...(licenseId && { license: licenseId }),
     keywords: ["slides", "presentation", "deck", "react", "html"],
   };
+}
+
+// "owner/repo" when origin is on GitHub, else null
+function githubRepo() {
+  const remote = run("git", ["remote", "get-url", "origin"]).stdout.trim();
+  return remote.match(/github\.com[:/](.+?)(?:\.git)?\/?$/)?.[1] ?? null;
 }
 
 function countFiles(dir) {
