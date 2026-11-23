@@ -27,6 +27,26 @@ Or copy the folder into your harness's skills directory by hand. Every scaffolde
 project also gets `AGENTS.md` (imported by `CLAUDE.md`) and a copy of the conventions
 in `docs/beatdeck/`, so an agent opening it later is not lost without the skill.
 
+### claude.ai and ChatGPT (upload)
+
+```bash
+bun scripts/package.mjs        # committed files only, validated; writes all of dist/ or nothing
+```
+
+| File | Shape | Upload it to |
+|---|---|---|
+| `dist/beatdeck.skill` | `beatdeck/SKILL.md` | claude.ai: **Customize → Skills → + → Create skill → Upload a skill** (code execution on) |
+| `dist/beatdeck.zip` | same bytes | uploaders that only take `.zip` (ChatGPT **Skills → Create → Upload from your computer**) |
+| `dist/beatdeck-plugin.zip` | `beatdeck/.claude-plugin/plugin.json` + `skills/beatdeck/` | ChatGPT's **New Plugin** dialog; also a Claude Code plugin (`claude --plugin-dir`) |
+
+ChatGPT skills and plugins need a Business, Enterprise or Edu workspace; uploads are
+scanned first and may sit in *Needs Review*.
+
+The packager runs skill-creator's official validator (needs the skill-creator
+plugin and [uv](https://docs.astral.sh/uv/)). In a hosted sandbox the agent builds
+the deck and hands you the HTML; `check:layout`, handouts and `publish` need Chrome,
+network and a here.now key, so they belong on your machine.
+
 ## Use
 
 ```bash
