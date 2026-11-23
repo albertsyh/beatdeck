@@ -294,15 +294,23 @@ a.chip:hover, a.chip:focus-visible{ border-color: var(--accent); color: var(--ac
   display: flex; flex-direction: column; gap: var(--s3);
   padding: var(--s5) var(--margin) 116px;
   background: var(--bg);
+  /* Too many slides for one screen scrolls DOWN. Without this the overflow
+     became an implicit 4th column off the right edge, and focusing the
+     current slide there slid the whole menu sideways. */
+  overflow-y: auto; overflow-x: hidden;
 }
 .deck.is-menu .chrome{ z-index: 70; }
 .deck-menu-head{ display: flex; align-items: center; gap: var(--s3); }
 .deck-menu-title{ font-family: var(--font-display); font-size: 44px; font-weight: var(--w-ann); letter-spacing: var(--ls-title); line-height: 1; margin: 0; }
 .deck-menu-hint{ margin-left: auto; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); font-weight: var(--w-emph); }
-.deck-menu-body{ flex: 1 1 auto; min-height: 0; column-count: 3; column-gap: var(--s7); }
-.deck-menu-group{ break-inside: avoid; margin: 0 0 var(--s4); }
-.deck-menu-heading{ font-size: 19px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: var(--w-ann); margin: 0 0 var(--s1); }
+/* Height follows the content (not the screen), so the 3 columns balance
+   instead of filling a fixed box. A section may split between columns, but
+   never inside an item, and its heading always travels with its first item. */
+.deck-menu-body{ flex: 0 0 auto; column-count: 3; column-gap: var(--s7); column-fill: balance; }
+.deck-menu-group{ margin: 0 0 var(--s4); }
+.deck-menu-heading{ font-size: 19px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: var(--w-ann); margin: 0 0 var(--s1); break-after: avoid; }
 .deck-menu-list{ list-style: none; margin: 0; padding: 0; }
+.deck-menu-list li{ break-inside: avoid; }
 .deck-menu-item{
   display: flex; gap: var(--s2); width: 100%; text-align: left;
   padding: 6px var(--s2); border: 0; border-radius: 12px;
