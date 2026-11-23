@@ -16,7 +16,7 @@ description: >
 
 *Presentations, beat by beat.*
 
-**Skill version: 0.4.3** · source: [github.com/albertsyh/beatdeck](https://github.com/albertsyh/beatdeck) · install or refresh: `npx skills add albertsyh/beatdeck`
+**Skill version: 0.4.4** · source: [github.com/albertsyh/beatdeck](https://github.com/albertsyh/beatdeck) · install or refresh: `npx skills add albertsyh/beatdeck`
 
 A deck is a small React app: slide components + a manifest of `{ id, label, steps, view }`.
 `bun run build` compiles it to `<name>.html`, one file with React, Motion, fonts and
@@ -100,7 +100,10 @@ function Why({ step }) {
 - `rich()` handles `**bold**`, `_italic_`, `[[slot for the speaker]]`, `\n`. Nothing else.
 - Pattern classes (all token-driven): `.cover`, `.stack/.item`, `.split/.panel-list`,
   `.grid-2/3/4 .card`, `.giant`, `.quote`, `.bars`, `.chips`, `.takeaway`, `.btn`, `kbd`.
-- `group: <node>` on a manifest entry starts a section in the contents menu.
+- `group: <node>` on a manifest entry starts a section in the contents menu;
+  `menuMark: ({ go }) => node` adds a control beside the entry.
+- `<Quiz id questions text />` toggles a one-question-at-a-time quiz over a slide;
+  `menuMark: quizMark(id)` opens it from the contents. See `reference/authoring.md`.
 - `numberFrom: 0` on `mountDeck` if slide 1 is front matter that should not be page 1.
 
 ## 3. Rules that keep it working
@@ -111,7 +114,9 @@ function Why({ step }) {
 - **Reveals keep their box.** Hidden content stays in layout. Don't mount/unmount.
 - **Both trees.** Anything animated must honour `useStatic()` (plain render for the
   print sheet) and `useReducedMotion()`. Canvas/WebGL needs a DOM fallback, and the
-  fallback must be *generated* from the live thing, not drawn beside it.
+  fallback must be *generated* from the live thing, not drawn beside it. The print
+  tree is always mounted, so a global listener or module-level request must bail
+  out under `useStatic()`, or the hidden copy takes it first.
 - **Everything inline.** No external scripts, styles, fonts, images, `import()`. Images
   and `.mp4` (H.264 only) are imported from JSX and inlined. Links the viewer chooses
   to follow (a PDF, an email) are the only allowed URLs.

@@ -12,7 +12,9 @@
  * @media print, so Cmd/Ctrl+P exports the whole deck with nothing hidden.
  *
  * mountDeck options:
- *   slides      the manifest: [{ id, label, steps, view, transition?, group? }]
+ *   slides      the manifest: [{ id, label, steps, view, transition?, group?,
+ *               menuMark? }] — menuMark is ({ go }) => node, a control beside
+ *               the entry in the contents menu (see quizMark)
  *   dock        { id, from, release, chip } — a Morph parked in the chrome
  *   meta        { title }
  *   controls    a deck-supplied element rendered into the chrome
@@ -265,13 +267,17 @@ function Menu({ slides, numberFrom, current, cursor, setCursor, onPick, onClose,
         </button>
       </div>
 
+      {/* The body is the scroll box, so the title and × stay put. The columns
+          live on an inner wrapper at their natural height: columns on the
+          fixed-height box itself would spill sideways into a 4th column. */}
       <div className="deck-menu-body" onClick={(e) => e.stopPropagation()}>
+        <div className="deck-menu-cols">
         {groups.map((g, gi) => (
           <section className="deck-menu-group" key={gi}>
             {g.heading !== undefined && <h3 className="deck-menu-heading">{g.heading}</h3>}
             <ul className="deck-menu-list">
               {g.items.map(({ slide, i }) => (
-                <li key={slide.id}>
+                <li key={slide.id} className={slide.menuMark ? "has-mark" : undefined}>
                   <button
                     type="button"
                     className={"deck-menu-item" + (i === current ? " is-current" : "") + (i === cursor ? " is-cursor" : "")}
@@ -283,13 +289,165 @@ function Menu({ slides, numberFrom, current, cursor, setCursor, onPick, onClose,
                     <span className="deck-menu-n">{pad(i + numberFrom)}</span>
                     <span className="deck-menu-label">{slide.label}</span>
                   </button>
+                  {/* manifest `menuMark`: a control beside the entry — a sibling,
+                      never inside the item button. `go` jumps there and closes
+                      the menu. Arrow keys move between entries only; Tab and
+                      click reach the mark. */}
+                  {slide.menuMark && (
+                    <span className="deck-menu-mark">{slide.menuMark({ go: () => onPick(i) })}</span>
+                  )}
                 </li>
               ))}
             </ul>
           </section>
         ))}
+        </div>
       </div>
     </motion.div>
+  );
+}
+
+/* ============================================================
+   QUIZ — a button on a slide that toggles a quiz over it
+   ============================================================ */
+const QUIZ_TEXT = {
+  open: "Quiz",
+  title: "Quiz",
+  hint: "← → between questions",
+  tap: "Tap to reveal the answer",
+  close: "Close the quiz"
+};
+
+/* A request to open a quiz by id. It is left here (for a quiz that mounts
+   after a jump) and announced (for one already on screen); the quiz with
+   that id takes it and clears it. */
+let quizWanted = null;
+export function openQuiz(id) {
+  quizWanted = id;
+  window.dispatchEvent(new CustomEvent("beatdeck:quiz", { detail: id }));
+}
+
+/**
+ * quizMark — a manifest `menuMark` that jumps to the slide and opens its quiz.
+ *   { id: "paste", …, menuMark: quizMark("paste", <Label id="pasteQuiz" />) }
+ * `label` is for screen readers (and the tooltip, when it is a string).
+ */
+export function quizMark(quizId, label = "Open the quiz") {
+  const Mark = ({ go }) => (
+    <button type="button" className="quiz-mark"
+      title={typeof label === "string" ? label : undefined}
+      onClick={(e) => { e.stopPropagation(); go(); openQuiz(quizId); }}>
+      <span aria-hidden="true">?</span>
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+  return Mark;
+}
+
+/**
+ * Quiz — one question at a time, the answer behind a tap.
+ *   <Quiz id="paste" questions={[{ q, a, kind? }]} text={{ open, title, hint, tap, close }} />
+ * `q` and `a` are nodes; `kind` (code, never copy) adds `quiz-a--<kind>` to the
+ * answer for the deck to style. Questions show in the order given.
+ *
+ * - The open button toggles; ×, Escape and the backdrop also close.
+ * - While open, no key reaches the deck (capture listener, propagation
+ *   stopped), so nothing changes slide behind it. ← → ↑ ↓ PageUp/Down Home
+ *   End move between questions; the card holds focus, so Space/Enter reveal.
+ * - The answer keeps its space (`visibility`), so the card never changes height.
+ * - Renders nothing under useStatic(): not in print, and — since the print
+ *   sheet is always mounted — the hidden copy never takes an openQuiz request.
+ */
+export function Quiz({ id, questions, text }) {
+  const t = { ...QUIZ_TEXT, ...(text || {}) };
+  const isStatic = useStatic();
+  const [open, setOpen] = useState(false);
+  const [cur, setCur] = useState(0);
+  const [shown, setShown] = useState(() => new Set());
+  const cardRef = useRef(null);
+  const last = questions.length - 1;
+
+  useEffect(() => {
+    if (isStatic || id === undefined) return;
+    const take = () => { if (quizWanted === id) { quizWanted = null; setOpen(true); } };
+    take();
+    window.addEventListener("beatdeck:quiz", take);
+    return () => window.removeEventListener("beatdeck:quiz", take);
+  }, [isStatic, id]);
+
+  useEffect(() => { if (open) cardRef.current?.focus({ preventScroll: true }); }, [open, cur]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      e.stopPropagation();
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key) {
+        case "Escape": setOpen(false); e.preventDefault(); break;
+        case "ArrowRight": case "ArrowDown": case "PageDown":
+          setCur((c) => Math.min(last, c + 1)); e.preventDefault(); break;
+        case "ArrowLeft": case "ArrowUp": case "PageUp":
+          setCur((c) => Math.max(0, c - 1)); e.preventDefault(); break;
+        case "Home": setCur(0); e.preventDefault(); break;
+        case "End": setCur(last); e.preventDefault(); break;
+        default: break;
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, last]);
+
+  if (isStatic || !questions.length) return null;
+  const flip = (i) => setShown((s) => {
+    const n = new Set(s);
+    n.has(i) ? n.delete(i) : n.add(i);
+    return n;
+  });
+  const c = questions[Math.min(cur, last)];
+  const on = shown.has(cur);
+
+  return (
+    <>
+      <button type="button" className="quiz-open" aria-expanded={open} aria-haspopup="dialog"
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}>
+        {t.open}
+      </button>
+      {open && (
+        <div className="quiz-overlay no-advance" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>
+          <div className="quiz-panel" role="dialog" aria-modal="true" aria-label={typeof t.title === "string" ? t.title : undefined}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="quiz-head">
+              <h3 className="quiz-title">{t.title}</h3>
+              <span className="quiz-hint" aria-hidden="true">{t.hint}</span>
+              <button type="button" className="navbtn" onClick={() => setOpen(false)}>
+                <span aria-hidden="true">&#215;</span>
+                <span className="sr-only">{t.close}</span>
+              </button>
+            </div>
+            {/* equal columns, so marking the current one never moves another */}
+            <nav className="quiz-nav" style={{ "--cols": Math.min(questions.length, 10), "--cols-flow": Math.min(questions.length, 5) }}>
+              {questions.map((_, i) => (
+                <button type="button" key={i}
+                  className={"quiz-num" + (i === cur ? " is-cur" : "") + (shown.has(i) ? " is-done" : "")}
+                  aria-current={i === cur ? "step" : undefined}
+                  onClick={() => setCur(i)}>
+                  {pad(i + 1)}
+                </button>
+              ))}
+            </nav>
+            <button type="button" ref={cardRef} className={"quiz-card" + (on ? " is-on" : "")}
+              aria-expanded={on} onClick={() => flip(cur)}>
+              <span className="quiz-q">{c.q}</span>
+              {/* hidden, not removed, so the card keeps its height on reveal */}
+              <span className={"quiz-a" + (c.kind ? " quiz-a--" + c.kind : "")} style={{ visibility: on ? "visible" : "hidden" }}>
+                {c.a}
+              </span>
+              <span className="quiz-tap" style={{ visibility: on ? "hidden" : "visible" }}>{t.tap}</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -521,6 +679,7 @@ export function validateManifest(slides) {
     if (!s.id || !s.view || !(s.steps >= 1)) throw new Error(`manifest entry ${JSON.stringify(s.id)} needs id, view and steps >= 1`);
     if (ids.has(s.id)) throw new Error(`manifest has duplicate slide id "${s.id}"`);
     if (s.transition && !TRANSITIONS[s.transition]) throw new Error(`slide "${s.id}": unknown transition "${s.transition}" (one of ${TRANSITION_NAMES.join(", ")})`);
+    if (s.menuMark !== undefined && typeof s.menuMark !== "function") throw new Error(`slide "${s.id}": menuMark must be a function ({ go }) => node`);
     ids.add(s.id);
   }
 }

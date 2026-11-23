@@ -294,23 +294,35 @@ a.chip:hover, a.chip:focus-visible{ border-color: var(--accent); color: var(--ac
   display: flex; flex-direction: column; gap: var(--s3);
   padding: var(--s5) var(--margin) 116px;
   background: var(--bg);
-  /* Too many slides for one screen scrolls DOWN. Without this the overflow
-     became an implicit 4th column off the right edge, and focusing the
-     current slide there slid the whole menu sideways. */
-  overflow-y: auto; overflow-x: hidden;
+  /* only the list scrolls (.deck-menu-body); the title and × stay put, and
+     the list ends above the 116px padding, so it never shows behind the chrome */
+  overflow: hidden;
 }
 .deck.is-menu .chrome{ z-index: 70; }
 .deck-menu-head{ display: flex; align-items: center; gap: var(--s3); }
 .deck-menu-title{ font-family: var(--font-display); font-size: 44px; font-weight: var(--w-ann); letter-spacing: var(--ls-title); line-height: 1; margin: 0; }
 .deck-menu-hint{ margin-left: auto; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); font-weight: var(--w-emph); }
-/* Height follows the content (not the screen), so the 3 columns balance
-   instead of filling a fixed box. A section may split between columns, but
-   never inside an item, and its heading always travels with its first item. */
-.deck-menu-body{ flex: 0 0 auto; column-count: 3; column-gap: var(--s7); column-fill: balance; }
-.deck-menu-group{ margin: 0 0 var(--s4); }
+/* The body is the scroll box. Too many slides scroll DOWN: columns on this
+   fixed-height box would overflow sideways into an off-screen 4th column, so
+   they live on the inner .deck-menu-cols at its natural height. The padding
+   is room for the focus ring, which the scroll box would clip; the negative
+   margin keeps the list aligned with the title. */
+.deck-menu-body{
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
+  padding: 6px; margin: -6px;
+}
+/* A section may split between columns, but never inside an item, and its
+   heading always travels with its first item. (`break-inside: avoid` on whole
+   sections is what forces an extra column.) */
+.deck-menu-cols{ column-count: 3; column-gap: var(--s7); column-fill: balance; }
+.deck-menu-group{ margin: 0 0 var(--s4); break-inside: auto; }
 .deck-menu-heading{ font-size: 19px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: var(--w-ann); margin: 0 0 var(--s1); break-after: avoid; }
 .deck-menu-list{ list-style: none; margin: 0; padding: 0; }
 .deck-menu-list li{ break-inside: avoid; }
+/* manifest `menuMark`: a control at the right end of its entry */
+.deck-menu-list li.has-mark{ position: relative; }
+.deck-menu-list li.has-mark .deck-menu-item{ padding-right: 56px; }
+.deck-menu-mark{ position: absolute; right: var(--s2); top: 50%; transform: translateY(-50%); display: flex; }
 .deck-menu-item{
   display: flex; gap: var(--s2); width: 100%; text-align: left;
   padding: 6px var(--s2); border: 0; border-radius: 12px;
@@ -323,6 +335,57 @@ a.chip:hover, a.chip:focus-visible{ border-color: var(--accent); color: var(--ac
 .deck-menu-item.is-current{ color: var(--accent); }
 .deck-menu-item.is-current .deck-menu-n{ color: var(--accent); }
 .deck-menu-item:focus-visible{ outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ============================================================
+   QUIZ — <Quiz> over a slide, and quizMark in the contents menu
+   ============================================================ */
+/* top right of the slide by default; a deck may move it */
+.quiz-open{
+  position: absolute; top: var(--margin); right: var(--margin);
+  font-family: var(--font-text); font-size: 18px; letter-spacing: .04em; color: var(--fg);
+  background: var(--bg-raised); border: 1px solid var(--line); border-radius: 999px;
+  padding: 10px 20px; cursor: pointer;
+}
+.quiz-open:hover, .quiz-open:focus-visible{ border-color: var(--fg-muted); outline: none; }
+.quiz-overlay{
+  position: absolute; inset: 0; z-index: 40;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+}
+.quiz-panel{
+  width: min(1560px, calc(100% - 2 * var(--margin))); max-height: 900px; overflow: auto;
+  display: flex; flex-direction: column; gap: var(--s4);
+  padding: var(--s5) var(--s6); border-radius: var(--radius);
+  background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 24px 60px rgba(0,0,0,.12);
+}
+.quiz-head{ display: flex; align-items: center; gap: var(--s4); }
+.quiz-title{ margin: 0; font-family: var(--font-display); font-size: 40px; font-weight: var(--w-ann); line-height: 1.1; color: var(--fg); }
+.quiz-hint{ margin-left: auto; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); font-weight: var(--w-emph); }
+/* the number bar: equal columns (up to 10 a row), so the current one never moves anything */
+.quiz-nav{ display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: var(--s2); }
+.quiz-num{
+  height: 52px; border: 1px solid var(--line); border-radius: 10px; background: none; cursor: pointer;
+  font-family: var(--font-text); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--fg-muted);
+}
+.quiz-num:hover, .quiz-num:focus-visible{ border-color: var(--fg-muted); outline: none; }
+.quiz-num.is-done{ background: var(--bg-raised); color: var(--fg-dim); }
+.quiz-num.is-cur{ background: var(--fg); border-color: var(--fg); color: var(--bg); }
+/* one question at a time: the question, then the answer in held space */
+.quiz-card{
+  display: flex; flex-direction: column; gap: var(--s4); min-height: 440px;
+  padding: var(--s5) var(--s6); border: 0; border-radius: var(--radius);
+  background: var(--bg-raised); text-align: left; font: inherit; color: var(--fg); cursor: pointer;
+}
+.quiz-card:focus-visible{ outline: 2px solid var(--fg-muted); outline-offset: 3px; }
+.quiz-q{ font-family: var(--font-display); font-size: 52px; font-weight: var(--w-ann); line-height: 1.2; }
+.quiz-a{ display: flex; flex-direction: column; gap: var(--s2); margin-top: auto; font-size: 30px; line-height: 1.35; color: var(--fg-dim); }
+.quiz-tap{ margin-top: calc(-1 * var(--s4)); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+.quiz-mark{
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--line); background: var(--bg-raised); color: var(--fg-dim); cursor: pointer;
+  font-family: var(--font-text); font-size: 18px; font-weight: var(--w-emph); line-height: 1;
+}
+.quiz-mark:hover, .quiz-mark:focus-visible{ color: var(--fg); border-color: var(--fg-muted); outline: none; }
 
 .progress{ position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--line); z-index: 5; }
 .progress-fill{ height: 100%; background: var(--accent); transition: width var(--dur) var(--ease-out); }
@@ -496,7 +559,19 @@ a.chip:hover, a.chip:focus-visible{ border-color: var(--accent); color: var(--ac
   :root[data-layout="flow"] .deck-menu-title{ font-size: 26px; }
   :root[data-layout="flow"] .deck-menu-hint{ display: none; }
   :root[data-layout="flow"] .deck-menu-head .navbtn{ margin-left: auto; }
-  :root[data-layout="flow"] .deck-menu-body{ column-count: 1; flex: 0 0 auto; }
+  /* phone: the whole menu scrolls under the sticky title, one column */
+  :root[data-layout="flow"] .deck-menu-body{ flex: 0 0 auto; overflow: visible; padding: 0; margin: 0; }
+  :root[data-layout="flow"] .deck-menu-cols{ column-count: 1; }
+  :root[data-layout="flow"] .quiz-mark{ width: 28px; height: 28px; font-size: 15px; }
   :root[data-layout="flow"] .deck-menu-item{ font-size: 16px; padding: 7px var(--s1); }
   :root[data-layout="flow"] .deck-menu-heading{ font-size: 13px; }
+  /* quiz: the button joins the flow, the quiz is fixed to the screen */
+  :root[data-layout="flow"] .quiz-open{ position: static; align-self: flex-start; margin-top: var(--s4); }
+  :root[data-layout="flow"] .quiz-overlay{ position: fixed; z-index: 80; padding: var(--s3); }
+  :root[data-layout="flow"] .quiz-panel{ width: 100%; max-height: 90vh; padding: var(--s4); }
+  :root[data-layout="flow"] .quiz-hint{ display: none; }
+  :root[data-layout="flow"] .quiz-nav{ grid-template-columns: repeat(var(--cols-flow), 1fr); }
+  :root[data-layout="flow"] .quiz-card{ min-height: 0; padding: var(--s4); }
+  :root[data-layout="flow"] .quiz-q{ font-size: 26px; }
+  :root[data-layout="flow"] .quiz-a{ font-size: 18px; }
 }

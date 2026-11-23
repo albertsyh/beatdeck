@@ -98,6 +98,11 @@ export const SLIDES = withFlat(MANIFEST, useFlow);
 - `label` is a node (`<Label id>`), so the chrome and the contents menu follow the
   language for free.
 - `withFlat` wraps multi-beat views so they render whole in flow mode.
+- `menuMark: ({ go }) => node` (optional) puts a small control at the right end of the
+  entry in the contents menu, beside the item button (never inside it). `go()` jumps
+  to that slide and closes the menu. The menu's arrow keys move between entries only;
+  Tab and click reach the mark. `quizMark(id, label)` is the ready-made one: a `?` that
+  jumps there and opens the slide's `<Quiz id>`.
 
 ## The chrome band
 
@@ -144,6 +149,11 @@ with `@page { size: 1920px 1080px }`, so print is pixel-identical to screen.
   under `useStatic()`; prefer *not printing it* (return the still) over freezing it.
 - `useStatic()` is also how a screen-only control (a download button) stays out of
   the handout.
+- **The print sheet is always mounted**, not only while printing: every slide exists
+  twice, once hidden under `StaticCtx`. A component that listens for a global event
+  (`window` listener, custom event) or takes a module-level request ("open the quiz
+  once we land") must bail out when `useStatic()` is true. Otherwise the hidden print
+  copy takes the request first and the visible slide never sees it.
 
 ## Images and video
 
@@ -155,6 +165,11 @@ import photo from "./assets/photo.jpg";   // inlined as a data URI by the build
 Limits: 300 KB warns, 1 MB fails, 4 MB per deck fails. Video: `.mp4` H.264 only
 (`ffmpeg -vf scale=540:-2 -c:v libx264 -crf 32 -c:a aac -b:a 48k -ac 1`), 3 MB per file.
 
+**No `mix-blend-mode` to drop a white background.** `multiply` on an image flickers on
+slide transitions: while the slide layer animates, the image blends against the
+transparent layer and the white shows, then snaps away once it settles. Use an asset
+with a transparent background instead.
+
 ## In-slide controls
 
 The stage advances a beat on any click it does not recognise. It ignores `.chrome`,
@@ -162,6 +177,46 @@ The stage advances a beat on any click it does not recognise. It ignores `.chrom
 `e.stopPropagation()`. A control that opens an overlay must also close it (toggle from
 the overlay's live state), the overlay needs its own close control, and Escape should
 dismiss it. Canvas-only `z-index` lifts above 5 must be reset in flow.
+
+## Quiz
+
+`<Quiz>` is a ready-made in-slide overlay: a button on the slide toggles a quiz over
+it, one question at a time, the answer behind a tap. The room calls it out, then you
+check.
+
+```jsx
+function Paste({ step }) {
+  const t = useStrings().paste;
+  return (
+    <div className="slide">
+      …
+      <Quiz id="paste" text={t.quiz.text}
+        questions={QUIZ_ORDER.map(([kind, i]) => ({
+          q: rich(t.quiz[kind][i].q),
+          a: <><b>{t.quiz.verdicts[kind]}</b> {rich(t.quiz[kind][i].why)}</>,
+          kind
+        }))} />
+    </div>
+  );
+}
+// manifest: { id: "paste", …, menuMark: quizMark("paste", <Label id="pasteQuiz" />) }
+```
+
+- `questions`: `[{ q, a, kind? }]`, shown in the given order. `q` and `a` are nodes.
+  `kind` is code (never copy) and adds `quiz-a--<kind>` to the answer for styling.
+  Keep the order in code; if the copy groups cases, assert at import that the order
+  lists each case exactly once, the same way `steps` is checked.
+- `text`: `{ open, title, hint, tap, close }` as nodes from the strings. The defaults
+  are English.
+- `id` links it to `quizMark(id)` in the manifest and to `openQuiz(id)`. Unique per deck.
+- Behaviour: the open button toggles; ×, Escape and the backdrop close. While it is
+  open no key reaches the deck, so nothing changes slide behind it; ← → ↑ ↓ PageUp/Down
+  Home End move between questions, and Space/Enter on the focused card reveal. The
+  answer keeps its space, so the card never changes height. The number bar has equal
+  columns, up to 10 in a row (5 on a phone).
+- Not in print or the PDF (it renders nothing under `useStatic()`).
+- The button sits top right of the slide (`.quiz-open`); move it in the deck's CSS if
+  the title runs there. On a phone it joins the flow and the quiz is fixed to the screen.
 
 ## Keyboard
 
