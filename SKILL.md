@@ -16,7 +16,7 @@ description: >
 
 *Presentations, beat by beat.*
 
-**Skill version: 0.4.0** · install or refresh: `npx skills add albertsyh/beatdeck`
+**Skill version: 0.4.1** · source: [github.com/albertsyh/beatdeck](https://github.com/albertsyh/beatdeck) · install or refresh: `npx skills add albertsyh/beatdeck`
 
 A deck is a small React app: slide components + a manifest of `{ id, label, steps, view }`.
 `bun run build` compiles it to `<name>.html`, one file with React, Motion, fonts and
